@@ -1,0 +1,69 @@
+-include makefile.config
+
+# Compiler
+CXX?=g++
+CXXFLAGS=-Wall -Wextra -std=c++17
+
+# Directories
+SRCDIR=../src
+CLIDIR=$(SRCDIR)/cli
+LIBDIR=lib
+
+# Debug flags
+ifeq ($(debug),yes)
+CXXFLAGS+=-g -O0
+else
+CXXFLAGS+=-O3 -DNDEBUG
+endif
+
+# Logging flags
+ifeq ($(logging),yes)
+CXXFLAGS+=-DLOGGING
+endif
+
+# Assertion flags
+ifeq ($(assertions),yes)
+CXXFLAGS+=-DENABLE_ASSERTIONS
+endif
+
+# Static flags
+ifeq ($(static),yes)
+CXXFLAGS+=-static
+LDFLAGS+=-static
+endif
+
+# Source files
+LIBSOURCES=$(wildcard $(SRCDIR)/core/*.cpp) \
+          $(wildcard $(SRCDIR)/solver/*.cpp) \
+          $(wildcard $(SRCDIR)/parser/*.cpp)
+          
+CLISOURCE=$(CLIDIR)/main.cpp
+
+# Object files
+LIBOBJECTS=$(LIBSOURCES:$(SRCDIR)/%.cpp=$(LIBDIR)/%.o)
+CLIOBJECT=cli/main.o
+
+# Targets
+all: stalmarck libstalmarck.a
+
+stalmarck: $(CLIOBJECT) libstalmarck.a
+	$(CXX) $(LDFLAGS) -o $@ $< -L. -lstalmarck
+
+libstalmarck.a: $(LIBOBJECTS)
+	ar rc $@ $^
+	ranlib $@
+
+$(LIBDIR)/%.o: $(SRCDIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -I$(SRCDIR) -c $< -o $@
+
+cli/%.o: $(CLIDIR)/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -I$(SRCDIR) -c $< -o $@
+
+clean:
+	rm -f stalmarck libstalmarck.a
+	rm -rf $(LIBDIR)
+	rm -rf cli
+
+.PHONY: all clean 
