@@ -1,0 +1,62 @@
+#!/bin/sh
+
+# Default build directory
+builddir=build
+
+# Default options
+debug=no
+logging=no
+assertions=no
+static=no
+
+usage () {
+cat << EOF
+usage: configure [<option> ...]
+
+where <option> is one of the following:
+
+  -h | --help        print this command line summary
+  -g                 compile with debugging information
+  -l                 include logging code
+  -c                 include assertion checking code
+  -s                 static compilation
+  --builddir=<dir>   use directory for build (default 'build')
+EOF
+exit 0
+}
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help) usage;;
+    -g) debug=yes;;
+    -l) logging=yes;;
+    -c) assertions=yes;;
+    -s) static=yes;;
+    --builddir=*) builddir="`echo $1|sed -e 's,^--builddir=,,'`";;
+    *) echo "*** configure: invalid option '$1' (try '-h')"
+       exit 1
+       ;;
+  esac
+  shift
+done
+
+mkdir -p $builddir
+
+cat > $builddir/makefile.config <<EOF
+# Configuration options set by './configure'
+debug=$debug
+logging=$logging
+assertions=$assertions
+static=$static
+EOF
+
+# Create the build directory and copy necessary files
+mkdir -p $builddir/cli
+mkdir -p $builddir/lib
+
+# Copy the makefile template to the build directory
+cp makefile.in $builddir/makefile
+
+echo "Configured '$builddir' build directory"
+echo "Run 'cd $builddir && make' to build" 

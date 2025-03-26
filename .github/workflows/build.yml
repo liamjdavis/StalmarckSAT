@@ -1,0 +1,82 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-linux-cmake:
+    name: Build on Linux with CMake
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libgtest-dev
+    
+    - name: Create build directory
+      run: mkdir -p build
+      
+    - name: Configure
+      run: cd build && cmake ..
+      
+    - name: Build
+      run: cd build && cmake --build .
+  
+  build-linux-configure:
+    name: Build on Linux with configure script
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libgtest-dev
+    
+    - name: Run configure script
+      run: chmod +x configure && ./configure
+      
+    - name: Build
+      run: cd build && make
+  
+  build-macos-cmake:
+    name: Build on macOS with CMake
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: brew install cmake googletest
+      
+    - name: Create build directory
+      run: mkdir -p build
+      
+    - name: Configure
+      run: cd build && cmake ..
+      
+    - name: Build
+      run: cd build && cmake --build .
+  
+  build-macos-configure:
+    name: Build on macOS with configure script
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: brew install cmake googletest
+      
+    - name: Run configure script
+      run: chmod +x configure && ./configure
+      
+    - name: Build
+      run: cd build && make 
