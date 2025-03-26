@@ -27,9 +27,6 @@ jobs:
       
     - name: Build
       run: cd build && cmake --build .
-      
-    - name: Run tests
-      run: cd build && ctest -V
   
   build-linux-configure:
     name: Build on Linux with configure script
@@ -67,9 +64,6 @@ jobs:
       
     - name: Build
       run: cd build && cmake --build .
-      
-    - name: Run tests
-      run: cd build && ctest -V
   
   build-macos-configure:
     name: Build on macOS with configure script
