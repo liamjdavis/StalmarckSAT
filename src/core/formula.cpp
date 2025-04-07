@@ -39,7 +39,30 @@ size_t Formula::num_clauses() const {
 }
 
 void Formula::translate_to_normalized_form() {
-    // TODO: Implement translation to normalized form
+
+    std::vector<std::vector<int>> implication_representation;
+
+    for (const auto& clause : impl_->clauses) {
+        std::vector<int> clause_implications;
+        
+        // Convert each disjunction of literals into implications (not A implies B)
+        for (size_t i = 0; i < clause.size(); i++) {
+            int lit = clause[i];
+            int next_lit = (i + 1 < clause.size()) ? clause[i + 1] : 0;
+
+            if (next_lit != 0) {
+                clause_implications.push_back(-lit); // Represent not A
+                clause_implications.push_back(next_lit); // Represent B
+            } else {
+                clause_implications.push_back(-lit); // Represent not A
+                clause_implications.push_back(0); // Represent false 
+            }
+        }
+
+        // Add the clause implications to the 2D vector
+        implication_representation.push_back(clause_implications);
+    }
+    //need to somehow update the instance variable Formula
 }
 
 void Formula::encode_to_implication_triplets() {
