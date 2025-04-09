@@ -1,6 +1,8 @@
 #include "formula.hpp"
 #include "formula_impl.hpp"
 #include <algorithm>
+#include <iostream>
+#include <tuple>
 
 namespace stalmarck {
 
@@ -43,6 +45,8 @@ void Formula::translate_to_normalized_form() {
     std::vector<std::vector<int>> implication_representation;
 
      // Convert each disjunction of literals into implications (not A implies B)
+
+     // we undertand the formula using the right associativity rule of implications
     for (const auto& clause : impl_->clauses) {
         std::vector<int> clause_implications;
        
@@ -71,23 +75,44 @@ void Formula::translate_to_normalized_form() {
         if (i + 1 < implication_representation.size()) {
             const auto& next_clause = implication_representation[i + 1];
 
-            // Add an implication: current_clause implies next_clause
-            std::vector<int> conjunction_implication;
-            conjunction_implication.push_back(-current_clause[0]); // Represent not (current_clause)
-            conjunction_implication.push_back(next_clause[0]);     // Represent (next_clause)
-            implication_representation.push_back(conjunction_implication);
+            // need to somehow convert the conjunction of clauses into implications
+
         }
     }
     // update the clauses in the formula
 
     // The problem with the above methods is that we do not have a way to track the precedence of the clauses
-    // currently, the assumption is that the resulting formula has the structure p -> (q -> (r -> (...)) as we add them left to right
-    // Also, the implementation of the negation of clauses is sketchy, as we are just adding the minus in front of the negated clause (might need to actually recursively apply negation rules)
+    // currently, the assumption is that the resulting formula has the structure p -> q -> r -> ... as we add them left to right
     impl_->clauses = implication_representation;
 }
 
 void Formula::encode_to_implication_triplets() {
-    // TODO: Implement encoding to implication triplets
+    std::vector<std::tuple<int, int, int>> triplets; // Store the triplets (x, y, z)
+
+    // Assign a new variable for each compound subformula
+    int next_variable = static_cast<int>(impl_->num_vars) + 1;
+
+    for (const auto& clause : impl_->clauses) {
+        int current_rep = next_variable++; // New variable representing the current clause
+
+        // Process literals in reverse order (from last to first)
+        for (int i = static_cast<int>(clause.size()) - 1; i >= 0; i--) {
+            int lit = clause[i];
+            int prev_lit = (i - 1 >= 0) ? clause[i - 1] : 0;
+
+            if (prev_lit != 0) {
+                // Add triplet for x ↔ (y → z), where x = current_rep, y = prev_lit, z = lit
+                triplets.emplace_back(current_rep, prev_lit, lit);
+            } else {
+                // Add triplet for x ↔ (y → ⊥), where x = current_rep, y = lit, z = 0 (false)
+                triplets.emplace_back(current_rep, lit, 0);
+            }
+        }
+
+    // might need to add more logic to combine triples
+      
+    }
+
 }
 
-} // namespace stalmarck 
+} // namespace stalmarck
