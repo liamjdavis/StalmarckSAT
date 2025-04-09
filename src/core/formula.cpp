@@ -1,5 +1,5 @@
-#include "core/formula.hpp"
-#include "core/formula_impl.hpp"
+#include "formula.hpp"
+#include "formula_impl.hpp"
 #include <algorithm>
 
 namespace stalmarck {
@@ -42,10 +42,10 @@ void Formula::translate_to_normalized_form() {
 
     std::vector<std::vector<int>> implication_representation;
 
+     // Convert each disjunction of literals into implications (not A implies B)
     for (const auto& clause : impl_->clauses) {
         std::vector<int> clause_implications;
-        
-        // Convert each disjunction of literals into implications (not A implies B)
+       
         for (size_t i = 0; i < clause.size(); i++) {
             int lit = clause[i];
             int next_lit = (i + 1 < clause.size()) ? clause[i + 1] : 0;
@@ -54,6 +54,7 @@ void Formula::translate_to_normalized_form() {
                 clause_implications.push_back(-lit); // Represent not A
                 clause_implications.push_back(next_lit); // Represent B
             } else {
+                // Handle the last literal in the clause
                 clause_implications.push_back(-lit); // Represent not A
                 clause_implications.push_back(0); // Represent false 
             }
@@ -62,7 +63,27 @@ void Formula::translate_to_normalized_form() {
         // Add the clause implications to the 2D vector
         implication_representation.push_back(clause_implications);
     }
-    //need to somehow update the instance variable Formula
+
+
+    // Convert the conjunction of clauses into implications
+    for (size_t i = 0; i < implication_representation.size(); i++) {
+        const auto& current_clause = implication_representation[i];
+        if (i + 1 < implication_representation.size()) {
+            const auto& next_clause = implication_representation[i + 1];
+
+            // Add an implication: current_clause implies next_clause
+            std::vector<int> conjunction_implication;
+            conjunction_implication.push_back(-current_clause[0]); // Represent not (current_clause)
+            conjunction_implication.push_back(next_clause[0]);     // Represent (next_clause)
+            implication_representation.push_back(conjunction_implication);
+        }
+    }
+    // update the clauses in the formula
+
+    // The problem with the above methods is that we do not have a way to track the precedence of the clauses
+    // currently, the assumption is that the resulting formula has the structure p -> (q -> (r -> (...)) as we add them left to right
+    // Also, the implementation of the negation of clauses is sketchy, as we are just adding the minus in front of the negated clause (might need to actually recursively apply negation rules)
+    impl_->clauses = implication_representation;
 }
 
 void Formula::encode_to_implication_triplets() {
