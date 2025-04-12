@@ -55,12 +55,7 @@ void Formula::translate_to_normalized_form() {
             int next_lit = (i + 1 < clause.size()) ? clause[i + 1] : 0;
 
             if (next_lit != 0) {
-                clause_implications.push_back(-lit); // Represent not A
-                clause_implications.push_back(next_lit); // Represent B
-            } else {
-                // Handle the last literal in the clause
-                clause_implications.push_back(-lit); // Represent not A
-                clause_implications.push_back(0); // Represent false 
+                clause_implications.push_back(-lit); // Represent not A  (not doing anything to B as it stays according to rules)
             }
         }
 
@@ -68,22 +63,27 @@ void Formula::translate_to_normalized_form() {
         implication_representation.push_back(clause_implications);
     }
 
-
-    // Convert the conjunction of clauses into implications
-    for (size_t i = 0; i < implication_representation.size(); i++) {
-        const auto& current_clause = implication_representation[i];
-        if (i + 1 < implication_representation.size()) {
-            const auto& next_clause = implication_representation[i + 1];
-
-            // need to somehow convert the conjunction of clauses into implications
-
+    // converting the conjunctions into implications (one dimensional vector)
+    std::vector<std::vector<int>> formula;
+    for (int i = 0; i < implication_representation.size(); i++){
+        std::vector<int> clause;
+        // copy all elements into implication formula
+        int next_clause = i + 1; 
+        for (int j = 0; i < implication_representation[i].size()-1; j++){
+            clause.push_back(implication_representation[i][j]);
+        }
+        formula.push_back(clause);
+        // add negative clause into implication form using last element of current and first elem of next clause
+        // this eliminates the ANDs in the formula
+        if (next_clause < implication_representation.size()){
+            std::vector<int> negative_clause;
+            int size_of_curr = implication_representation[i].size();
+            negative_clause.push_back(implication_representation[i][size_of_curr - 1]);
+            negative_clause.push_back(-implication_representation[next_clause][0]);
         }
     }
-    // update the clauses in the formula
-
-    // The problem with the above methods is that we do not have a way to track the precedence of the clauses
-    // currently, the assumption is that the resulting formula has the structure p -> q -> r -> ... as we add them left to right
-    impl_->clauses = implication_representation;
+    // every clause of size 2 must be interpreted as negated one (unless we have a way to track them)
+    impl_->clauses = formula;
 }
 
 void Formula::encode_to_implication_triplets() {
