@@ -68,19 +68,25 @@ void Formula::translate_to_normalized_form() {
     for (long unsigned int i = 0; i < implication_representation.size(); i++){
         std::vector<int> clause;
         // copy all elements into implication formula
-        long unsigned int next_clause = i + 1; 
+        long unsigned int next_clause_idx = i + 1; 
         if (i == 0) clause.push_back(implication_representation[i][0]); // copy the first element of the iff it is the first clause
         for (int j = 1; i < implication_representation[i].size()-1; j++){ // not adding the first element
             clause.push_back(implication_representation[i][j]);
         }
-        formula.push_back(clause);
+        if (next_clause_idx == implication_representation.size()){
+            clause.push_back(implication_representation[i][implication_representation.size() - 1]); // add the last element
+        }
+        formula.push_back(clause); // add clause to the formula
+
         // add negative clause into implication form using last element of current and first elem of next clause
         // this eliminates the ANDs in the formula
-        if (next_clause < implication_representation.size()){
+        if (next_clause_idx < implication_representation.size()){
             std::vector<int> negative_clause;
             int size_of_curr = implication_representation[i].size();
             negative_clause.push_back(implication_representation[i][size_of_curr - 1]);
-            negative_clause.push_back(-implication_representation[next_clause][0]);
+            negative_clause.push_back(-implication_representation[next_clause_idx][0]);
+            negative_clause.push_back(formula.size()); // flag the negative clause by index
+            formula.push_back(negative_clause);
         }
     }
     // every clause of size 2 must be interpreted as negated one (unless we have a way to track them)
@@ -88,32 +94,39 @@ void Formula::translate_to_normalized_form() {
 }
 
 void Formula::encode_to_implication_triplets() {
-    std::vector<std::tuple<int, int, int>> triplets; // Store the triplets (x, y, z)
-
+   
     // Assign a new variable for each compound subformula
-    int next_variable = static_cast<int>(impl_->num_vars) + 1;
+    int next_variable = static_cast<int>(impl_->num_vars) + 2;
+    int curr_rep = next_variable++; // New variable representing the current clause
+    int prev_rep = curr_rep - 1; // Variable representing the previous clause
 
-    for (const auto& clause : impl_->clauses) {
-        int current_rep = next_variable++; // New variable representing the current clause
+    for (int i = this->num_clauses() - 1; i > 0; i++) {
+        std::vector<int> curr_clause = this->impl_->clauses[i];
 
-        // Process literals in reverse order (from last to first)
-        for (int i = static_cast<int>(clause.size()) - 1; i >= 0; i--) {
-            int lit = clause[i];
-            int prev_lit = (i - 1 >= 0) ? clause[i - 1] : 0;
 
-            if (prev_lit != 0) {
-                // Add triplet for x ↔ (y → z), where x = current_rep, y = prev_lit, z = lit
-                triplets.emplace_back(current_rep, prev_lit, lit);
-            } else {
-                // Add triplet for x ↔ (y → ⊥), where x = current_rep, y = lit, z = 0 (false)
-                triplets.emplace_back(current_rep, lit, 0);
+
+        for (int j = curr_clause.size() - 1; j > 0; j--) {
+
+            unsigned long int prev_lit = (j - 1 >= 0) ? curr_clause[j - 1] : 0;
+            unsigned long int curr_lit = curr_clause[j];
+
+            if (prev_lit != 0 && j == curr_clause.size() - 1 && i == this->num_clauses() - 1) { // if the last element
+                this->impl_->triplets.emplace_back(curr_rep, prev_lit, curr_lit);
             }
+            else if (prev_lit != 0) { // if intermediate element of arbitrary clause
+                this->impl_->triplets.emplace_back(curr_rep, prev_lit, prev_rep);
+            }
+            else if (i + 1 < this->num_clauses() && this->impl_->clauses[i].size() == 2 && this->impl_->negated_clauses.find(i) != this->impl_->negated_clauses.end()){ // handling negative clauses
+                this->impl_->triplets.emplace_back(curr_rep, prev_lit, -prev_rep);
+            }
+            
         }
-
-    // might need to add more logic to combine triples
-      
+        prev_rep = curr_rep;
+        curr_rep++;
     }
-
+      
 }
+
+} // namespace stalmarck
 
 } // namespace stalmarck
