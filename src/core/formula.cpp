@@ -100,14 +100,14 @@ void Formula::encode_to_implication_triplets() {
     int curr_rep = next_variable++; // New variable representing the current clause
     int prev_rep = curr_rep - 1; // Variable representing the previous clause
 
-    for (int i = this->num_clauses() - 1; i > 0; i++) {
+    for (long unsigned int i = this->num_clauses() - 1; i > 0; i++) {
         std::vector<int> curr_clause = this->impl_->clauses[i];
 
 
 
-        for (int j = curr_clause.size() - 1; j > 0; j--) {
+        for (unsigned int j = curr_clause.size() - 1; j > 0; j--) {
 
-            unsigned long int prev_lit = (j - 1 >= 0) ? curr_clause[j - 1] : 0;
+            unsigned long int prev_lit = curr_clause[j - 1];
             unsigned long int curr_lit = curr_clause[j];
 
             if (prev_lit != 0 && j == curr_clause.size() - 1 && i == this->num_clauses() - 1) { // if the last element
@@ -126,7 +126,5 @@ void Formula::encode_to_implication_triplets() {
     }
       
 }
-
-} // namespace stalmarck
 
 } // namespace stalmarck
