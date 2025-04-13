@@ -65,11 +65,12 @@ void Formula::translate_to_normalized_form() {
 
     // converting the conjunctions into implications (one dimensional vector)
     std::vector<std::vector<int>> formula;
-    for (int i = 0; i < implication_representation.size(); i++){
+    for (long unsigned int i = 0; i < implication_representation.size(); i++){
         std::vector<int> clause;
         // copy all elements into implication formula
-        int next_clause = i + 1; 
-        for (int j = 0; i < implication_representation[i].size()-1; j++){
+        long unsigned int next_clause = i + 1; 
+        if (i == 0) clause.push_back(implication_representation[i][0]); // copy the first element of the iff it is the first clause
+        for (int j = 1; i < implication_representation[i].size()-1; j++){ // not adding the first element
             clause.push_back(implication_representation[i][j]);
         }
         formula.push_back(clause);
