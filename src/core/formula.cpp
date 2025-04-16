@@ -41,12 +41,9 @@ size_t Formula::num_clauses() const {
 }
 
 void Formula::translate_to_normalized_form() {
-
     std::vector<std::vector<int>> implication_representation;
 
-     // Convert each disjunction of literals into implications (not A implies B)
-
-     // we undertand the formula using the right associativity rule of implications
+    // Convert each disjunction of literals into implications (not A implies B)
     for (const auto& clause : impl_->clauses) {
         std::vector<int> clause_implications;
        
@@ -55,41 +52,78 @@ void Formula::translate_to_normalized_form() {
             int next_lit = (i + 1 < clause.size()) ? clause[i + 1] : 0;
 
             if (next_lit != 0) {
-                clause_implications.push_back(-lit); // Represent not A  (not doing anything to B as it stays according to rules)
+                clause_implications.push_back(-lit); // Represent not A
+            } else {
+                // Make sure to include the last literal
+                clause_implications.push_back(lit);
             }
         }
 
-        // Add the clause implications to the 2D vector
-        implication_representation.push_back(clause_implications);
+        // Only add non-empty clauses
+        if (!clause_implications.empty()) {
+            implication_representation.push_back(clause_implications);
+        }
+    }
+
+    // Guard against empty implication representation
+    if (implication_representation.empty()) {
+        return;
     }
 
     // converting the conjunctions into implications (one dimensional vector)
     std::vector<std::vector<int>> formula;
-    for (long unsigned int i = 0; i < implication_representation.size(); i++){
+    for (size_t i = 0; i < implication_representation.size(); i++) {
+        // Skip empty clauses
+        if (implication_representation[i].empty()) {
+            continue;
+        }
+
         std::vector<int> clause;
-        // copy all elements into implication formula
-        long unsigned int next_clause_idx = i + 1; 
-        if (i == 0) clause.push_back(implication_representation[i][0]); // copy the first element of the iff it is the first clause
-        for (int j = 1; i < implication_representation[i].size()-1; j++){ // not adding the first element
+        size_t next_clause_idx = i + 1;
+        
+        // Add first element of the first clause
+        if (i == 0 && !implication_representation[i].empty()) {
+            clause.push_back(implication_representation[i][0]);
+        }
+        
+        // Add middle elements of the clause (corrected loop)
+        for (size_t j = 1; j < implication_representation[i].size() - 1; j++) {
             clause.push_back(implication_representation[i][j]);
         }
-        if (next_clause_idx == implication_representation.size()){
-            clause.push_back(implication_representation[i][implication_representation.size() - 1]); // add the last element
+        
+        // Add last element of the last clause
+        if (next_clause_idx == implication_representation.size() && 
+            !implication_representation[i].empty()) {
+            size_t last_idx = implication_representation[i].size() - 1;
+            clause.push_back(implication_representation[i][last_idx]);
         }
-        formula.push_back(clause); // add clause to the formula
+        
+        // Only add non-empty clauses
+        if (!clause.empty()) {
+            formula.push_back(clause);
+        }
 
-        // add negative clause into implication form using last element of current and first elem of next clause
-        // this eliminates the ANDs in the formula
-        if (next_clause_idx < implication_representation.size()){
+        // Add negative clause into implication form
+        if (next_clause_idx < implication_representation.size() && 
+            !implication_representation[i].empty() && 
+            !implication_representation[next_clause_idx].empty()) {
+            
             std::vector<int> negative_clause;
-            int size_of_curr = implication_representation[i].size();
-            negative_clause.push_back(implication_representation[i][size_of_curr - 1]);
+            size_t size_of_curr = implication_representation[i].size();
+            
+            if (size_of_curr > 0) {
+                negative_clause.push_back(implication_representation[i][size_of_curr - 1]);
+            }
+            
             negative_clause.push_back(-implication_representation[next_clause_idx][0]);
-            negative_clause.push_back(formula.size()); // flag the negative clause by index
+            
+            // Mark as negative clause (using a safer approach)
+            impl_->negated_clauses.insert(formula.size());
+            
             formula.push_back(negative_clause);
         }
     }
-    // every clause of size 2 must be interpreted as negated one (unless we have a way to track them)
+    
     impl_->clauses = formula;
 }
 
@@ -100,31 +134,43 @@ void Formula::encode_to_implication_triplets() {
     int curr_rep = next_variable++; // New variable representing the current clause
     int prev_rep = curr_rep - 1; // Variable representing the previous clause
 
-    for (long unsigned int i = this->num_clauses() - 1; i > 0; i++) {
+    // Start with the last clause and work backward
+    for (long unsigned int i = this->num_clauses() - 1; i > 0; i--) {
+        // Guard against out-of-bounds access
+        if (i >= this->num_clauses()) {
+            break;
+        }
+        
         std::vector<int> curr_clause = this->impl_->clauses[i];
 
-
-
         for (unsigned int j = curr_clause.size() - 1; j > 0; j--) {
+            // Guard against out-of-bounds access
+            if (j >= curr_clause.size()) {
+                break;
+            }
 
             unsigned long int prev_lit = curr_clause[j - 1];
             unsigned long int curr_lit = curr_clause[j];
 
-            if (prev_lit != 0 && j == curr_clause.size() - 1 && i == this->num_clauses() - 1) { // if the last element
+            if (prev_lit != 0 && j == curr_clause.size() - 1 && i == this->num_clauses() - 1) { 
+                // If the last element
                 this->impl_->triplets.emplace_back(curr_rep, prev_lit, curr_lit);
             }
-            else if (prev_lit != 0) { // if intermediate element of arbitrary clause
+            else if (prev_lit != 0) { 
+                // If intermediate element of arbitrary clause
                 this->impl_->triplets.emplace_back(curr_rep, prev_lit, prev_rep);
             }
-            else if (i + 1 < this->num_clauses() && this->impl_->clauses[i].size() == 2 && this->impl_->negated_clauses.find(i) != this->impl_->negated_clauses.end()){ // handling negative clauses
+            else if (i + 1 < this->num_clauses() && 
+                     this->impl_->clauses[i].size() == 2 && 
+                     this->impl_->negated_clauses.find(i) != this->impl_->negated_clauses.end()) { 
+                // Handling negative clauses
                 this->impl_->triplets.emplace_back(curr_rep, prev_lit, -prev_rep);
             }
-            
         }
+        
         prev_rep = curr_rep;
         curr_rep++;
     }
-      
 }
 
 } // namespace stalmarck

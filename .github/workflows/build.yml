@@ -27,6 +27,9 @@ jobs:
       
     - name: Build
       run: cd build && cmake --build .
+      
+    - name: Test
+      run: cd build && ctest --output-on-failure
   
   build-linux-configure:
     name: Build on Linux with configure script
@@ -41,10 +44,16 @@ jobs:
         sudo apt-get install -y cmake g++ libgtest-dev
     
     - name: Run configure script
-      run: chmod +x configure && ./configure
+      run: chmod +x configure && ./configure --with-tests
       
     - name: Build
       run: cd build && make
+      
+    - name: Generate CTest configuration
+      run: cd build && cmake .
+      
+    - name: Test
+      run: cd build && ctest --output-on-failure
   
   build-macos-cmake:
     name: Build on macOS with CMake
@@ -65,6 +74,9 @@ jobs:
     - name: Build
       run: cd build && cmake --build .
   
+    - name: Test
+      run: cd build && ctest --output-on-failure
+
   build-macos-configure:
     name: Build on macOS with configure script
     runs-on: macos-latest
@@ -76,7 +88,13 @@ jobs:
       run: brew install cmake googletest
       
     - name: Run configure script
-      run: chmod +x configure && ./configure
+      run: chmod +x configure && ./configure --with-tests
       
     - name: Build
-      run: cd build && make 
+      run: cd build && make
+      
+    - name: Generate CTest configuration
+      run: cd build && cmake .
+      
+    - name: Test
+      run: cd build && ctest --output-on-failure
