@@ -173,4 +173,22 @@ void Formula::encode_to_implication_triplets() {
     }
 }
 
+const std::vector<std::tuple<int, int, int>>& Formula::get_triplets() const {
+    // First, check if we already have triplets
+    if (impl_->triplets.empty()) {
+        // We need to modify the formula, but this is a const method
+        // We can use const_cast to temporarily remove const-ness
+        // This is generally not good practice, but can be justified here
+        // since we're maintaining logical constness (the external behavior doesn't change)
+        Formula* non_const_this = const_cast<Formula*>(this);
+        
+        // Apply the necessary translations if they haven't been done yet
+        non_const_this->translate_to_normalized_form();
+        non_const_this->encode_to_implication_triplets();
+    }
+    
+    // Now return the triplets
+    return impl_->triplets;
+}
+
 } // namespace stalmarck

@@ -13,7 +13,7 @@ public:
 
     // Core algorithm methods
     bool solve(const Formula& formula);
-    bool apply_simple_rules();
+    bool apply_simple_rules(const std::vector<std::tuple<int, int, int>>& formula_triplets, const Formula& formula);
     bool branch_and_solve(int variable, bool value);
     
     // State management
