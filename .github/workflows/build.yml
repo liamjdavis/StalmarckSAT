@@ -53,7 +53,7 @@ jobs:
       run: cd build && cmake .
       
     - name: Test
-      run: cd build && ./test/unit_tests --output-on-failure
+      run: cd build && ctest --output-on-failure
   
   build-macos-cmake:
     name: Build on macOS with CMake
@@ -97,4 +97,4 @@ jobs:
       run: cd build && cmake .
       
     - name: Test
-      run: cd build && ./test/unit_tests --output-on-failure
+      run: cd build && ctest --output-on-failure

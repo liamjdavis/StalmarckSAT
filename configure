@@ -46,45 +46,52 @@ do
   shift
 done
 
+# Create the build directory if it doesn't exist
 mkdir -p $builddir
 
-cat > $builddir/makefile.config <<EOF
-# Configuration options set by './configure'
-debug=$debug
-logging=$logging
-assertions=$assertions
-static=$static
-tests=$tests
-EOF
-
-# Create the build directory and copy necessary files
-mkdir -p $builddir/cli
-mkdir -p $builddir/lib
-mkdir -p $builddir/tests  # Create tests directory
-
-# Copy the makefile template to the build directory
-cp makefile.in $builddir/makefile
-
-# If tests are enabled, set up CMake test configuration
-if [ "$tests" = "yes" ]; then
-  # Create a minimal CMakeLists.txt for CTest integration
-  cat > $builddir/CMakeLists.txt <<EOF
-cmake_minimum_required(VERSION 3.10)
-project(StalmarckSAT)
-enable_testing()
-include(CTest)
-
-# Add test executable discovery
-file(GLOB TEST_FILES "tests/*_test")
-foreach(TEST_FILE \${TEST_FILES})
-  get_filename_component(TEST_NAME \${TEST_FILE} NAME)
-  add_test(NAME \${TEST_NAME} COMMAND \${TEST_FILE})
-endforeach()
-EOF
+# Run CMake to configure the build
+cd $builddir
+cmake_options=""
+if [ "$debug" = "yes" ]; then
+  cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Debug"
+else
+  cmake_options="$cmake_options -DCMAKE_BUILD_TYPE=Release"
 fi
 
-echo "Configured '$builddir' build directory"
+if [ "$tests" = "yes" ]; then
+  cmake_options="$cmake_options -DBUILD_TESTING=ON"
+else
+  cmake_options="$cmake_options -DBUILD_TESTING=OFF"
+fi
+
+# Additional options based on your configure flags
+if [ "$logging" = "yes" ]; then
+  cmake_options="$cmake_options -DENABLE_LOGGING=ON"
+fi
+
+if [ "$assertions" = "yes" ]; then
+  cmake_options="$cmake_options -DENABLE_ASSERTIONS=ON"
+fi
+
+if [ "$static" = "yes" ]; then
+  cmake_options="$cmake_options -DBUILD_SHARED_LIBS=OFF"
+fi
+
+# Run CMake with the options
+echo "Running CMake with options: $cmake_options"
+cmake $cmake_options ..
+
+# Create a convenience wrapper script that goes to the right place
+cat > ../run_tests.sh <<EOF
+#!/bin/sh
+cd $builddir
+ctest --output-on-failure
+EOF
+chmod +x ../run_tests.sh
+
+cd ..
+echo "Configuration complete in '$builddir' directory"
 echo "Run 'cd $builddir && make' to build"
 if [ "$tests" = "yes" ]; then
-  echo "Run 'cd $builddir && ctest' to run tests"
+  echo "Run './run_tests.sh' or 'cd $builddir && ctest' to run tests"
 fi
