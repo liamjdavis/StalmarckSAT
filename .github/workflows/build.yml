@@ -27,6 +27,9 @@ jobs:
       
     - name: Build
       run: cd build && cmake --build .
+
+    - name: Test
+      run: cd build && ctest --output-on-failure
   
   build-linux-configure:
     name: Build on Linux with configure script
@@ -45,6 +48,9 @@ jobs:
       
     - name: Build
       run: cd build && make
+
+    - name: Test
+      run: cd build && ctest --output-on-failure
   
   build-macos-cmake:
     name: Build on macOS with CMake
@@ -65,6 +71,9 @@ jobs:
     - name: Build
       run: cd build && cmake --build .
   
+    - name: Test
+      run: cd build && ctest --output-on-failure
+
   build-macos-configure:
     name: Build on macOS with configure script
     runs-on: macos-latest
@@ -80,3 +89,6 @@ jobs:
       
     - name: Build
       run: cd build && make 
+
+    - name: Test
+      run: cd build && ctest --output-on-failure
