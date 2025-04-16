@@ -2,6 +2,7 @@
 #include "core/formula.hpp"
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace stalmarck {
 
@@ -10,18 +11,44 @@ public:
     std::unordered_map<int, bool> assignments;
     bool has_contradiction_flag = false;
     bool has_complete_assignment_flag = false;
+    std::vector<std::tuple<int, int, int>> current_triplets;
+    size_t current_num_variables = 0;
 };
 
 Solver::Solver() : impl_(std::make_unique<Impl>()) {}
 Solver::~Solver() = default;
 
 bool Solver::solve(const Formula& formula) {
+    // Reset state at the beginning
     reset();
-
+    
+    // Check for direct contradictions in unit clauses
+    const auto& clauses = formula.get_clauses(); // You'll need to add this accessor method to your Formula class
+    
+    // Build a set of unit clauses for quick contradiction checking
+    std::unordered_set<int> unit_clauses;
+    for (const auto& clause : clauses) {
+        if (clause.size() == 1) {
+            int lit = clause[0];
+            // Check if this contradicts an existing unit clause
+            if (unit_clauses.find(-lit) != unit_clauses.end()) {
+                impl_->has_contradiction_flag = true;
+                return false;
+            }
+            unit_clauses.insert(lit);
+        }
+    }
+    
     std::vector<std::tuple<int, int, int>> triplets = formula.get_triplets();
+    
+    // Store the triplets and formula size for branching
+    impl_->current_triplets = triplets;
+    impl_->current_num_variables = formula.num_variables();
     
     // First try simple rules
     if (!apply_simple_rules(triplets, formula)) {
+        // A contradiction was detected during simple rule application
+        impl_->has_contradiction_flag = true;
         return false;
     }
     
@@ -30,7 +57,7 @@ bool Solver::solve(const Formula& formula) {
         return !has_contradiction();
     }
     
-    // If we have a contradiction, we're done
+    // If we already have a contradiction, we're done
     if (has_contradiction()) {
         return false;
     }
@@ -49,11 +76,12 @@ bool Solver::solve(const Formula& formula) {
             }
             
             // If both branches lead to contradiction, formula is unsatisfiable
+            impl_->has_contradiction_flag = true;
             return false;
         }
     }
     
-    return true;
+    return !has_contradiction();
 }
 
 bool Solver::apply_simple_rules(const std::vector<std::tuple<int, int, int>>& formula_triplets, const Formula& formula) {
@@ -200,11 +228,84 @@ bool Solver::apply_simple_rules(const std::vector<std::tuple<int, int, int>>& fo
 }
 
 bool Solver::branch_and_solve(int variable, bool value) {
-    // TODO: Implement branching and recursive solving
-    // Silence unused parameter warnings until implementation is complete
-    (void)variable;
-    (void)value;
-    return true;
+    // Save the current state before branching
+    auto saved_assignments = impl_->assignments;
+    bool saved_contradiction = impl_->has_contradiction_flag;
+    bool saved_complete_assignment = impl_->has_complete_assignment_flag;
+    
+    // Set the variable to the given value
+    impl_->assignments[variable] = value;
+    
+    // Create a temporary formula to pass to apply_simple_rules
+    Formula temp_formula;
+    
+    // Apply simple rules with the new assignment
+    if (!apply_simple_rules(impl_->current_triplets, temp_formula)) {
+        // This branch leads to a contradiction
+        // Restore the state before returning
+        impl_->assignments = saved_assignments;
+        impl_->has_contradiction_flag = saved_contradiction;
+        impl_->has_complete_assignment_flag = saved_complete_assignment;
+        return false;
+    }
+    
+    // Check if we now have a complete assignment without contradiction
+    if (has_complete_assignment() && !has_contradiction()) {
+        return true;
+    }
+    
+    // If no more unassigned variables but not complete, something is wrong
+    // Just return the current result
+    bool has_unassigned = false;
+    
+    // Need to continue branching on other variables
+    for (size_t i = 1; i <= impl_->current_num_variables; ++i) {
+        if (i != variable && impl_->assignments.find(i) == impl_->assignments.end()) {
+            has_unassigned = true;
+            
+            // Save state before this branch
+            auto branch_saved_assignments = impl_->assignments;
+            bool branch_saved_contradiction = impl_->has_contradiction_flag;
+            bool branch_saved_complete_assignment = impl_->has_complete_assignment_flag;
+            
+            // Try this variable with both values
+            bool true_branch = branch_and_solve(i, true);
+            if (true_branch) {
+                // Set complete assignment flag here
+                impl_->has_complete_assignment_flag = true;
+                return true;
+            }
+            
+            // Restore state before trying the false branch
+            impl_->assignments = branch_saved_assignments;
+            impl_->has_contradiction_flag = branch_saved_contradiction;
+            impl_->has_complete_assignment_flag = branch_saved_complete_assignment;
+            
+            bool false_branch = branch_and_solve(i, false);
+            if (false_branch) {
+                // Set complete assignment flag here
+                impl_->has_complete_assignment_flag = true;
+                return true;
+            }
+            
+            // If both branches failed, formula is unsatisfiable
+            impl_->has_contradiction_flag = true;
+            return false;
+        }
+    }
+    
+    // If no unassigned variables found and we get here, we have a complete assignment
+    if (!has_unassigned && !has_contradiction()) {
+        // Make sure to set the complete assignment flag here
+        impl_->has_complete_assignment_flag = true;
+        return true;
+    }
+    
+    // Otherwise, restore state and return false
+    impl_->assignments = saved_assignments;
+    impl_->has_contradiction_flag = saved_contradiction;
+    impl_->has_complete_assignment_flag = saved_complete_assignment;
+    return false;
 }
 
 bool Solver::has_contradiction() const {
