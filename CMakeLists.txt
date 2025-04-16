@@ -51,6 +51,10 @@ target_include_directories(stalmarck
         $<INSTALL_INTERFACE:include>
 )
 
+# Add the executable
+add_executable(StalmarckSAT src/cli/main.cpp)
+target_link_libraries(StalmarckSAT PRIVATE stalmarck)
+
 # Add tests
 enable_testing()
 add_subdirectory(test)

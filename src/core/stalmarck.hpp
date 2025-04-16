@@ -13,7 +13,7 @@ public:
     ~StalmarckSolver();
 
     // Main interface methods
-    bool solve(const std::string& formula);
+    bool solve(const std::string& filename); // Changed from formula to filename
     bool solve(const Formula& formula);
     bool is_tautology() const;
     
@@ -26,4 +26,4 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-} // namespace stalmarck 
+} // namespace stalmarck

@@ -12,7 +12,6 @@ public:
 
     // Parsing methods
     Formula parse_dimacs(const std::string& filename);
-    Formula parse_formula(const std::string& formula);
     
     // Error handling
     bool has_error() const;
