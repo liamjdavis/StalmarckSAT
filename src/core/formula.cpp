@@ -191,4 +191,8 @@ const std::vector<std::tuple<int, int, int>>& Formula::get_triplets() const {
     return impl_->triplets;
 }
 
+const std::vector<std::vector<int>>& Formula::get_clauses() const {
+    return impl_->clauses;
+}
+
 } // namespace stalmarck

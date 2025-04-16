@@ -127,5 +127,187 @@ TEST(SolverTests, multipleRulesCombined) {
     EXPECT_FALSE(solver.has_contradiction());
 }
 
+// Test that the Formula class correctly handles unit clauses
+TEST(SolverTests, UnitClauseRepresentation) {
+    Formula formula;
+    
+    formula.add_clause({1});   // x1 must be true
+    formula.add_clause({-1});  // NOT x1 must be true (x1 must be false)
+    
+    const auto& triplets = formula.get_triplets();
+    
+    // Check what triplets were created
+    std::cout << "Unit clause triplets:" << std::endl;
+    for (const auto& triplet : triplets) {
+        std::cout << "(" << std::get<0>(triplet) << ", " 
+                  << std::get<1>(triplet) << ", " 
+                  << std::get<2>(triplet) << ")" << std::endl;
+    }
+    
+    // There should be some representation of these unit clauses
+    EXPECT_FALSE(triplets.empty());
+}
+
+// Test direct contradiction
+TEST(SolverTests, DirectContradiction) {
+    Solver solver;
+    
+    // Create a formula with direct contradiction
+    Formula formula;
+    
+    // Add contradictory clauses
+    formula.add_clause({1});   // x1 must be true
+    formula.add_clause({-1});  // NOT x1 must be true (x1 must be false)
+    
+    // Print out the triplets for debugging
+    const auto& triplets = formula.get_triplets();
+    std::cout << "Contradictory formula triplets:" << std::endl;
+    for (const auto& triplet : triplets) {
+        std::cout << "(" << std::get<0>(triplet) << ", " 
+                  << std::get<1>(triplet) << ", " 
+                  << std::get<2>(triplet) << ")" << std::endl;
+    }
+    
+    // Solve should detect the contradiction
+    bool result = solver.solve(formula);
+    std::cout << "Result: " << result << std::endl;
+    std::cout << "Has contradiction: " << solver.has_contradiction() << std::endl;
+    
+    EXPECT_FALSE(result) << "The solver should return false for a contradictory formula";
+    EXPECT_TRUE(solver.has_contradiction()) << "The solver should set the contradiction flag";
+}
+
+// Test basic branching - unsatisfiable case (negation is a tautology)
+TEST(SolverTests, BasicBranchingUnsatisfiable) {
+    Solver solver;
+    Formula formula;
+    
+    // Create an unsatisfiable formula: (x1) AND (NOT x1)
+    // This represents the negation of a tautology x1 OR NOT x1
+    formula.add_clause({1});   // x1
+    formula.add_clause({-1});  // NOT x1
+    
+    // If the formula is unsatisfiable, its negation is a tautology
+    EXPECT_FALSE(solver.solve(formula));
+    EXPECT_TRUE(solver.has_contradiction());
+}
+
+// Test basic branching - satisfiable case (negation is not a tautology)
+TEST(SolverTests, BasicBranchingSatisfiable) {
+    Solver solver;
+    Formula formula;
+    
+    // Create a satisfiable formula: (x1 OR x2) AND (NOT x1 OR x3)
+    formula.add_clause({1, 2});    // x1 OR x2
+    formula.add_clause({-1, 3});   // NOT x1 OR x3
+    
+    // A satisfiable formula should be solved successfully
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test branching with multiple variables
+TEST(SolverTests, MultipleBranching) {
+    Solver solver;
+    Formula formula;
+    
+    // Create a formula requiring branching: (x1 OR x2) AND (NOT x1 OR NOT x2) AND (x1 OR NOT x3) AND (x3 OR x2)
+    formula.add_clause({1, 2});     // x1 OR x2
+    formula.add_clause({-1, -2});   // NOT x1 OR NOT x2
+    formula.add_clause({1, -3});    // x1 OR NOT x3
+    formula.add_clause({3, 2});     // x3 OR x2
+    
+    // This formula is satisfiable with proper branching (e.g., x1=true, x2=false, x3=false)
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test with a logical law: Law of Excluded Middle (p OR NOT p)
+TEST(SolverTests, LawOfExcludedMiddle) {
+    Solver solver;
+    Formula formula;
+    
+    // Negation of Law of Excluded Middle: NOT(p OR NOT p) = (NOT p AND p)
+    formula.add_clause({-1});  // NOT p
+    formula.add_clause({1});   // p
+    
+    // Should be unsatisfiable since (p OR NOT p) is a tautology
+    EXPECT_FALSE(solver.solve(formula));
+    EXPECT_TRUE(solver.has_contradiction());
+}
+
+// Test nested branching with multiple solutions
+TEST(SolverTests, NestedBranchingMultipleSolutions) {
+    Solver solver;
+    Formula formula;
+    
+    // Create formula that requires multiple levels of branching
+    // (a OR b) AND (c OR d) AND (NOT a OR NOT c) AND (NOT b OR NOT d)
+    formula.add_clause({1, 2});    // a OR b
+    formula.add_clause({3, 4});    // c OR d
+    formula.add_clause({-1, -3});  // NOT a OR NOT c
+    formula.add_clause({-2, -4});  // NOT b OR NOT d
+    
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test large number of variables
+TEST(SolverTests, LargeVariableSet) {
+    Solver solver;
+    Formula formula;
+    
+    // Create a chain of OR clauses with 20 variables
+    for (int i = 1; i < 20; i++) {
+        formula.add_clause({i, i + 1});  // vi OR v(i+1)
+    }
+    
+    // Add some constraints to make it more interesting
+    formula.add_clause({-1});     // v1 is false
+    formula.add_clause({-10});    // v10 is false
+    formula.add_clause({20});     // v20 is true
+    
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test complex XOR relationship
+TEST(SolverTests, ComplexXOR) {
+    Solver solver;
+    Formula formula;
+    
+    // Encode (a XOR b) AND (b XOR c)
+    // XOR is represented as (a OR b) AND (NOT a OR NOT b)
+    formula.add_clause({1, 2});    // a OR b
+    formula.add_clause({-1, -2});  // NOT a OR NOT b
+    formula.add_clause({2, 3});    // b OR c
+    formula.add_clause({-2, -3});  // NOT b OR NOT c
+    formula.add_clause({1});       // a is true
+    
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test multiple satisfiable assignments
+TEST(SolverTests, MultipleSatisfiableAssignments) {
+    Solver solver;
+    Formula formula;
+    
+    // Create formula: (a OR b) AND (b OR c) AND (c OR d)
+    // This has multiple satisfiable assignments
+    formula.add_clause({1, 2});   // a OR b
+    formula.add_clause({2, 3});   // b OR c
+    formula.add_clause({3, 4});   // c OR d
+    
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
 } // namespace test
 } // namespace stalmarck

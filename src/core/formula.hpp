@@ -34,6 +34,9 @@ public:
     // Get triplets
     const std::vector<std::tuple<int, int, int>>& get_triplets() const;
 
+    // Get clauses
+    const std::vector<std::vector<int>>& get_clauses() const;
+
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;
