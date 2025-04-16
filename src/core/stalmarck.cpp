@@ -1,6 +1,8 @@
 #include "core/stalmarck.hpp"
 #include "solver/solver.hpp"
 #include "parser/parser.hpp"
+#include <string>
+#include <memory>
 
 namespace stalmarck {
 
@@ -16,8 +18,8 @@ public:
 StalmarckSolver::StalmarckSolver() : impl_(std::make_unique<Impl>()) {}
 StalmarckSolver::~StalmarckSolver() = default;
 
-bool StalmarckSolver::solve(const std::string& formula) {
-    Formula parsed = impl_->parser.parse_formula(formula);
+bool StalmarckSolver::solve(const std::string& filename) {
+    Formula parsed = impl_->parser.parse_dimacs(filename);
     if (impl_->parser.has_error()) {
         return false;
     }
@@ -43,4 +45,4 @@ void StalmarckSolver::set_verbosity(int level) {
     impl_->verbosity = level;
 }
 
-} // namespace stalmarck 
+} // namespace stalmarck
