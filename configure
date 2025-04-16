@@ -8,6 +8,7 @@ debug=no
 logging=no
 assertions=no
 static=no
+tests=yes  # Enable tests by default
 
 usage () {
 cat << EOF
@@ -21,6 +22,8 @@ where <option> is one of the following:
   -c                 include assertion checking code
   -s                 static compilation
   --builddir=<dir>   use directory for build (default 'build')
+  --with-tests       build with tests (default)
+  --without-tests    build without tests
 EOF
 exit 0
 }
@@ -34,6 +37,8 @@ do
     -c) assertions=yes;;
     -s) static=yes;;
     --builddir=*) builddir="`echo $1|sed -e 's,^--builddir=,,'`";;
+    --with-tests) tests=yes;;
+    --without-tests) tests=no;;
     *) echo "*** configure: invalid option '$1' (try '-h')"
        exit 1
        ;;
@@ -49,14 +54,37 @@ debug=$debug
 logging=$logging
 assertions=$assertions
 static=$static
+tests=$tests
 EOF
 
 # Create the build directory and copy necessary files
 mkdir -p $builddir/cli
 mkdir -p $builddir/lib
+mkdir -p $builddir/tests  # Create tests directory
 
 # Copy the makefile template to the build directory
 cp makefile.in $builddir/makefile
 
+# If tests are enabled, set up CMake test configuration
+if [ "$tests" = "yes" ]; then
+  # Create a minimal CMakeLists.txt for CTest integration
+  cat > $builddir/CMakeLists.txt <<EOF
+cmake_minimum_required(VERSION 3.10)
+project(StalmarckSAT)
+enable_testing()
+include(CTest)
+
+# Add test executable discovery
+file(GLOB TEST_FILES "tests/*_test")
+foreach(TEST_FILE \${TEST_FILES})
+  get_filename_component(TEST_NAME \${TEST_FILE} NAME)
+  add_test(NAME \${TEST_NAME} COMMAND \${TEST_FILE})
+endforeach()
+EOF
+fi
+
 echo "Configured '$builddir' build directory"
-echo "Run 'cd $builddir && make' to build" 
+echo "Run 'cd $builddir && make' to build"
+if [ "$tests" = "yes" ]; then
+  echo "Run 'cd $builddir && ctest' to run tests"
+fi
