@@ -31,6 +31,9 @@ public:
     void translate_to_normalized_form();
     void encode_to_implication_triplets();
 
+    // Get triplets
+    const std::vector<std::tuple<int, int, int>>& get_triplets() const;
+
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;

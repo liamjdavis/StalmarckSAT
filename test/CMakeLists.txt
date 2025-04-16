@@ -6,6 +6,7 @@ enable_testing()
 # Unit tests
 add_executable(unit_tests
     unit/test_formula.cpp
+    unit/test_solver.cpp
 )
 
 target_link_libraries(unit_tests

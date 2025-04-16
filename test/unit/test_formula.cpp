@@ -83,5 +83,33 @@ TEST(FormulaTests, ComplexFormula) {
     // throwing exceptions
 }
 
+// Test automatic translation in get_triplets
+TEST(FormulaTests, GetTripletsAutoTranslation) {
+    Formula formula;
+    
+    // Add a simple formula: (x1 ∨ x2) ∧ (¬x2 ∨ x3)
+    formula.add_clause({1, 2});
+    formula.add_clause({-2, 3});
+    
+    // Call get_triplets() directly without explicit translation
+    const auto& triplets = formula.get_triplets();
+    
+    // Verify that triplets were automatically generated
+    EXPECT_FALSE(triplets.empty());
+    
+    // Create another formula and explicitly translate it
+    Formula formula2;
+    formula2.add_clause({1, 2});
+    formula2.add_clause({-2, 3});
+    
+    formula2.translate_to_normalized_form();
+    formula2.encode_to_implication_triplets();
+    const auto& explicit_triplets = formula2.get_triplets();
+    
+    // The number of triplets should be the same whether we call translation
+    // explicitly or let get_triplets() handle it automatically
+    EXPECT_EQ(triplets.size(), explicit_triplets.size());
+}
+
 } // namespace test
 } // namespace stalmarck
