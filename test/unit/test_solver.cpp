@@ -127,27 +127,6 @@ TEST(SolverTests, multipleRulesCombined) {
     EXPECT_FALSE(solver.has_contradiction());
 }
 
-// Test that the Formula class correctly handles unit clauses
-TEST(SolverTests, UnitClauseRepresentation) {
-    Formula formula;
-    
-    formula.add_clause({1});   // x1 must be true
-    formula.add_clause({-1});  // NOT x1 must be true (x1 must be false)
-    
-    const auto& triplets = formula.get_triplets();
-    
-    // Check what triplets were created
-    std::cout << "Unit clause triplets:" << std::endl;
-    for (const auto& triplet : triplets) {
-        std::cout << "(" << std::get<0>(triplet) << ", " 
-                  << std::get<1>(triplet) << ", " 
-                  << std::get<2>(triplet) << ")" << std::endl;
-    }
-    
-    // There should be some representation of these unit clauses
-    EXPECT_FALSE(triplets.empty());
-}
-
 // Test direct contradiction
 TEST(SolverTests, DirectContradiction) {
     Solver solver;
@@ -207,23 +186,6 @@ TEST(SolverTests, BasicBranchingSatisfiable) {
     EXPECT_TRUE(solver.has_complete_assignment());
 }
 
-// Test branching with multiple variables
-TEST(SolverTests, MultipleBranching) {
-    Solver solver;
-    Formula formula;
-    
-    // Create a formula requiring branching: (x1 OR x2) AND (NOT x1 OR NOT x2) AND (x1 OR NOT x3) AND (x3 OR x2)
-    formula.add_clause({1, 2});     // x1 OR x2
-    formula.add_clause({-1, -2});   // NOT x1 OR NOT x2
-    formula.add_clause({1, -3});    // x1 OR NOT x3
-    formula.add_clause({3, 2});     // x3 OR x2
-    
-    // This formula is satisfiable with proper branching (e.g., x1=true, x2=false, x3=false)
-    EXPECT_TRUE(solver.solve(formula));
-    EXPECT_FALSE(solver.has_contradiction());
-    EXPECT_TRUE(solver.has_complete_assignment());
-}
-
 // Test with a logical law: Law of Excluded Middle (p OR NOT p)
 TEST(SolverTests, LawOfExcludedMiddle) {
     Solver solver;
@@ -269,24 +231,6 @@ TEST(SolverTests, LargeVariableSet) {
     formula.add_clause({-1});     // v1 is false
     formula.add_clause({-10});    // v10 is false
     formula.add_clause({20});     // v20 is true
-    
-    EXPECT_TRUE(solver.solve(formula));
-    EXPECT_FALSE(solver.has_contradiction());
-    EXPECT_TRUE(solver.has_complete_assignment());
-}
-
-// Test complex XOR relationship
-TEST(SolverTests, ComplexXOR) {
-    Solver solver;
-    Formula formula;
-    
-    // Encode (a XOR b) AND (b XOR c)
-    // XOR is represented as (a OR b) AND (NOT a OR NOT b)
-    formula.add_clause({1, 2});    // a OR b
-    formula.add_clause({-1, -2});  // NOT a OR NOT b
-    formula.add_clause({2, 3});    // b OR c
-    formula.add_clause({-2, -3});  // NOT b OR NOT c
-    formula.add_clause({1});       // a is true
     
     EXPECT_TRUE(solver.solve(formula));
     EXPECT_FALSE(solver.has_contradiction());

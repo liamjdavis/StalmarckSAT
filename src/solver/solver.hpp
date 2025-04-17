@@ -19,6 +19,8 @@ public:
     // State management
     bool has_contradiction() const;
     bool has_complete_assignment() const;
+    bool verify_assignment();
+    bool eval_literal(int literal);
     void reset();
 
 private:

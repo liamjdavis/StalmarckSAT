@@ -29,7 +29,7 @@ jobs:
       run: cd build && cmake --build .
       
     - name: Test
-      run: cd build && ./test/unit_tests --output-on-failure
+      run: cd build && ctest --output-on-failure
   
   build-linux-configure:
     name: Build on Linux with configure script
@@ -75,7 +75,7 @@ jobs:
       run: cd build && cmake --build .
   
     - name: Test
-      run: cd build && ./test/unit_tests --output-on-failure
+      run: cd build && ctest --output-on-failure
 
   build-macos-configure:
     name: Build on macOS with configure script

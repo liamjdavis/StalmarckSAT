@@ -67,8 +67,6 @@ Formula Parser::parse_dimacs(const std::string& filename) {
         }
     }
     
-    // Normalize the formula to prepare for solving
-    formula.normalize();
     return formula;
 }
 
@@ -80,4 +78,4 @@ std::string Parser::get_error() const {
     return impl_->error_message;
 }
 
-} // namespace stalmarck 
+} // namespace stalmarck
