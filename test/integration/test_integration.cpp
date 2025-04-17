@@ -33,9 +33,8 @@ protected:
     }
 
     bool expectedResult(const std::string& filename) {
-        std::string prefix = filename.substr(0, 3);
-        if (prefix == "sat") return true;
-        if (prefix == "uns") return false;
+        if (filename.substr(0, 3) == "sat") return true;
+        if (filename.substr(0, 5) == "unsat") return false;
         
         ADD_FAILURE() << "Invalid test case filename: " << filename 
                      << " - must start with 'sat' or 'unsat'";
@@ -70,7 +69,7 @@ TEST_F(IntegrationTests, SolveAllCNFs) {
         }
         
         // Check if result matches filename prefix
-        bool is_sat = !solver.is_tautology();
+        bool is_sat = solver.is_tautology();
         bool expected_sat = expectedResult(filename);
         if (is_sat == expected_sat) {
             passed++;
