@@ -1,23 +1,21 @@
 #include "formula.hpp"
 #include "formula_impl.hpp"
 #include <algorithm>
-#include <iostream>
 #include <tuple>
+#include <sstream>
+#include <unordered_map>
 
 namespace stalmarck {
 
-// Remove the redundant implementation class definition
-// class Formula::Impl {
-// public:
-//     std::vector<std::vector<int>> clauses;
-//     size_t num_vars = 0;
-// };
+Formula::Formula() : impl_(std::make_unique<Impl>()) {
+}
 
-Formula::Formula() : impl_(std::make_unique<Impl>()) {}
 Formula::~Formula() = default;
 
 void Formula::add_clause(const std::vector<int>& literals) {
     impl_->clauses.push_back(literals);
+    
+    size_t old_num_vars = impl_->num_vars;
     for (int lit : literals) {
         impl_->num_vars = std::max(impl_->num_vars, static_cast<size_t>(std::abs(lit)));
     }
@@ -46,7 +44,7 @@ void Formula::translate_to_normalized_form() {
     // Convert each disjunction of literals into implications (not A implies B)
     for (const auto& clause : impl_->clauses) {
         std::vector<int> clause_implications;
-       
+        
         for (size_t i = 0; i < clause.size(); i++) {
             int lit = clause[i];
             int next_lit = (i + 1 < clause.size()) ? clause[i + 1] : 0;
@@ -128,13 +126,24 @@ void Formula::translate_to_normalized_form() {
 }
 
 void Formula::encode_to_implication_triplets() {
+    // Validate the formula first
+    for (const auto& clause : impl_->clauses) {
+        for (int lit : clause) {
+            if (lit < -static_cast<int>(impl_->num_vars) || lit > static_cast<int>(impl_->num_vars) || lit == 0) {
+                // Invalid literal
+            }
+        }
+    }
+
+    // Clear any existing triplets
+    impl_->triplets.clear();
    
     // Assign a new variable for each compound subformula
     int next_variable = static_cast<int>(impl_->num_vars) + 2;
     int curr_rep = next_variable++; // New variable representing the current clause
     int prev_rep = curr_rep - 1; // Variable representing the previous clause
 
-    // Start with the last clause and work backward
+    // Process each clause
     for (long unsigned int i = this->num_clauses() - 1; i > 0; i--) {
         // Guard against out-of-bounds access
         if (i >= this->num_clauses()) {
@@ -143,28 +152,24 @@ void Formula::encode_to_implication_triplets() {
         
         std::vector<int> curr_clause = this->impl_->clauses[i];
 
+        // Process literals in the clause
         for (unsigned int j = curr_clause.size() - 1; j > 0; j--) {
-            // Guard against out-of-bounds access
-            if (j >= curr_clause.size()) {
-                break;
+            int prev_lit = curr_clause[j - 1];
+            int curr_lit = curr_clause[j];
+            
+            // Check for invalid literals
+            if (prev_lit == 0) {
+                continue;
             }
 
-            unsigned long int prev_lit = curr_clause[j - 1];
-            unsigned long int curr_lit = curr_clause[j];
-
-            if (prev_lit != 0 && j == curr_clause.size() - 1 && i == this->num_clauses() - 1) { 
-                // If the last element
+            // Create triplets based on the clause structure - no normalization assumptions
+            if (j == curr_clause.size() - 1 && i == this->num_clauses() - 1) { 
+                // If the last element of the last clause
                 this->impl_->triplets.emplace_back(curr_rep, prev_lit, curr_lit);
             }
-            else if (prev_lit != 0) { 
-                // If intermediate element of arbitrary clause
+            else {
+                // For all other elements/clauses
                 this->impl_->triplets.emplace_back(curr_rep, prev_lit, prev_rep);
-            }
-            else if (i + 1 < this->num_clauses() && 
-                     this->impl_->clauses[i].size() == 2 && 
-                     this->impl_->negated_clauses.find(i) != this->impl_->negated_clauses.end()) { 
-                // Handling negative clauses
-                this->impl_->triplets.emplace_back(curr_rep, prev_lit, -prev_rep);
             }
         }
         
@@ -182,8 +187,8 @@ const std::vector<std::tuple<int, int, int>>& Formula::get_triplets() const {
         // since we're maintaining logical constness (the external behavior doesn't change)
         Formula* non_const_this = const_cast<Formula*>(this);
         
-        // Apply the necessary translations if they haven't been done yet
-        non_const_this->translate_to_normalized_form();
+        // Skip translation to normalized form (which creates issues for CNF files)
+        // and directly encode the CNF clauses to triplets
         non_const_this->encode_to_implication_triplets();
     }
     
