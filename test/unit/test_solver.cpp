@@ -253,5 +253,277 @@ TEST(SolverTests, MultipleSatisfiableAssignments) {
     EXPECT_TRUE(solver.has_complete_assignment());
 }
 
+// Test with a single literal and its negation
+TEST(SolverTests, SingleLiteralContradiction) {
+    Solver solver;
+    Formula formula;
+
+    // Add a single literal and its negation
+    formula.add_clause({1});   // x1 must be true
+    formula.add_clause({-1});  // x1 must be false
+
+    EXPECT_FALSE(solver.solve(formula));
+    EXPECT_TRUE(solver.has_contradiction());
+}
+
+
+// Test with a tautology clause
+TEST(SolverTests, TautologyClause) {
+    Solver solver;
+    Formula formula;
+
+    // Add a tautology clause (always true)
+    formula.add_clause({1, -1}); // x1 OR NOT x1
+
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test with all negative literals
+TEST(SolverTests, AllNegativeLiterals) {
+    Solver solver;
+    Formula formula;
+
+    // Add clauses with only negative literals
+    formula.add_clause({-1, -2});
+    formula.add_clause({-2, -3});
+    formula.add_clause({-3, -4});
+
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test with all positive literals
+TEST(SolverTests, AllPositiveLiterals) {
+    Solver solver;
+    Formula formula;
+
+    // Add clauses with only positive literals
+    formula.add_clause({1, 2});
+    formula.add_clause({2, 3});
+    formula.add_clause({3, 4});
+
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test with a large contradictory formula
+TEST(SolverTests, LargeContradictoryFormula) {
+    Solver solver;
+    Formula formula;
+
+    // Create a large formula with a contradiction
+    for (int i = 1; i <= 50; i++) {
+        formula.add_clause({i, i + 1});  // vi OR v(i+1)
+    }
+    formula.add_clause({-25}); // Contradiction: v25 must be false
+    formula.add_clause({25});  // Contradiction: v25 must be true
+
+    EXPECT_FALSE(solver.solve(formula));
+    EXPECT_TRUE(solver.has_contradiction());
+}
+
+// Test with a single variable appearing in multiple clauses
+TEST(SolverTests, SingleVariableMultipleClauses) {
+    Solver solver;
+    Formula formula;
+
+    // Add multiple clauses involving the same variable
+    formula.add_clause({1});
+    formula.add_clause({1, -1});
+    formula.add_clause({-1});
+
+    EXPECT_FALSE(solver.solve(formula));
+    EXPECT_TRUE(solver.has_contradiction());
+}
+
+// Test with a chain of implications
+TEST(SolverTests, ChainOfImplications) {
+    Solver solver;
+    Formula formula;
+
+    // Create a chain of implications
+    formula.add_clause({-1, 2}); // x1 → x2
+    formula.add_clause({-2, 3}); // x2 → x3
+    formula.add_clause({-3, 4}); // x3 → x4
+    formula.add_clause({-4, 1}); // x4 → x1 (circular dependency)
+
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+TEST(SolverTests, RedundantClauses) {
+    Solver solver;
+    Formula formula;
+
+    // Add redundant clauses
+    formula.add_clause({1, 2});
+    formula.add_clause({1, 2}); // Duplicate clause
+    formula.add_clause({2, 1}); // Permutation of the first clause
+
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test with a single clause containing all variables
+TEST(SolverTests, SingleClauseAllVariables) {
+    Solver solver;
+    Formula formula;
+
+    // Add a single clause with all variables
+    formula.add_clause({1, 2, 3, 4, 5});
+
+    EXPECT_TRUE(solver.solve(formula)) << "A single clause with all variables should be satisfiable.";
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// // Test with mutually exclusive clauses
+TEST(SolverTests, MutuallyExclusiveClauses) {
+    Solver solver;
+    Formula formula;
+
+    // Add mutually exclusive clauses
+    formula.add_clause({1, 2});   // x1 OR x2
+    formula.add_clause({-1, -2}); // NOT x1 OR NOT x2
+
+    EXPECT_TRUE(solver.solve(formula)) << "Mutually exclusive clauses should be satisfiable if no direct contradiction exists.";
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// // Test with a large number of variables and no constraints
+TEST(SolverTests, LargeVariableSetNoConstraints) {
+    Solver solver;
+    Formula formula;
+
+    // Add a large number of variables with no constraints
+    for (int i = 1; i <= 100; i++) {
+        formula.add_clause({i}); // Each variable is independent
+    }
+
+    EXPECT_TRUE(solver.solve(formula)) << "A formula with independent variables should be satisfiable.";
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// // Test with a formula that requires backtracking
+TEST(SolverTests, RequiresBacktracking) {
+    Solver solver;
+    Formula formula;
+
+    // Create a formula that requires backtracking to solve
+    formula.add_clause({1, 2});    // x1 OR x2
+    formula.add_clause({-1, 3});   // NOT x1 OR x3
+    formula.add_clause({-2, -3});  // NOT x2 OR NOT x3
+
+    EXPECT_TRUE(solver.solve(formula)) << "A formula requiring backtracking should be satisfiable if no contradictions exist.";
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// Test with a formula containing only unit clauses
+TEST(SolverTests, OnlyUnitClauses) {
+    Solver solver;
+    Formula formula;
+
+    // Add only unit clauses
+    formula.add_clause({1});  // x1 must be true
+    formula.add_clause({-2}); // x2 must be false
+    formula.add_clause({3});  // x3 must be true
+
+    EXPECT_TRUE(solver.solve(formula)) << "A formula with only unit clauses should be satisfiable if no contradictions exist.";
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// // Test with a formula containing redundant unit clauses
+TEST(SolverTests, RedundantUnitClauses) {
+    Solver solver;
+    Formula formula;
+
+    // Add redundant unit clauses
+    formula.add_clause({1});  // x1 must be true
+    formula.add_clause({1});  // Redundant clause
+    formula.add_clause({-2}); // x2 must be false
+    formula.add_clause({-2}); // Redundant clause
+
+    EXPECT_TRUE(solver.solve(formula)) << "A formula with redundant unit clauses should still be satisfiable.";
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// // Test with a formula containing a mix of tautologies and contradictions
+TEST(SolverTests, MixedTautologiesAndContradictions) {
+    Solver solver;
+    Formula formula;
+
+    // Add tautologies
+    formula.add_clause({1, -1}); // x1 OR NOT x1
+    formula.add_clause({2, -2}); // x2 OR NOT x2
+
+    // Add contradictions
+    formula.add_clause({3});  // x3 must be true
+    formula.add_clause({-3}); // x3 must be false
+
+    EXPECT_FALSE(solver.solve(formula)) << "A formula with contradictions should be unsatisfiable, even with tautologies.";
+    EXPECT_TRUE(solver.has_contradiction());
+}
+
+// // Test with a formula containing a circular dependency
+TEST(SolverTests, CircularDependency) {
+    Solver solver;
+    Formula formula;
+
+    // Create a circular dependency
+    formula.add_clause({-1, 2}); // x1 → x2
+    formula.add_clause({-2, 3}); // x2 → x3
+    formula.add_clause({-3, 1}); // x3 → x1
+
+    EXPECT_TRUE(solver.solve(formula)) << "A formula with a circular dependency should be satisfiable if no contradictions exist.";
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+// ============================================================
+
+//FAILING TESTS: 
+
+// Test with a formula that has no solution
+TEST(SolverTests, NoSolution) {  //This FAILS
+    Solver solver;
+    Formula formula;
+
+    // Create a formula with no solution
+    formula.add_clause({1, 2});    // x1 OR x2
+    formula.add_clause({-1, 3});   // NOT x1 OR x3
+    formula.add_clause({-2, -3});  // NOT x2 OR NOT x3
+    formula.add_clause({-1, -2});  // NOT x1 OR NOT x2
+
+    EXPECT_FALSE(solver.solve(formula)) << "A formula with no solution should be unsatisfiable.";
+    EXPECT_TRUE(solver.has_contradiction());
+}
+
+//  Test with a large number of tautology clauses
+TEST(SolverTests, LargeTautologyFormula) {  // this fails
+    Solver solver;
+    Formula formula;
+
+    // Add a large number of tautology clauses
+    for (int i = 1; i <= 15; i++) {
+        formula.add_clause({i, -i}); // xi OR NOT xi
+    }
+
+    EXPECT_TRUE(solver.solve(formula));
+    EXPECT_FALSE(solver.has_contradiction());
+    EXPECT_TRUE(solver.has_complete_assignment());
+}
+
+
 } // namespace test
 } // namespace stalmarck
