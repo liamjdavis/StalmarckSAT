@@ -34,3 +34,19 @@ add_test(NAME integration_tests COMMAND integration_tests)
 set_tests_properties(integration_tests 
     PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
+
+# Fuzzing tests
+add_executable(fuzzing_tests fuzzing/solver_fuzzer.cpp)
+target_link_libraries(fuzzing_tests
+    PRIVATE
+        stalmarck
+        GTest::gtest
+        GTest::gtest_main
+)
+
+# Add fuzzing test (not part of automatic test suite by default)
+add_test(NAME fuzzing_tests COMMAND fuzzing_tests)
+set_tests_properties(fuzzing_tests 
+    PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    LABELS "fuzzing"
+)
