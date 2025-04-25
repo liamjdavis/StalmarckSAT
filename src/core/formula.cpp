@@ -209,14 +209,16 @@ void Formula::encode_to_implication_triplets() {
                 // If the last element of the last clause
                 this->impl_->triplets.emplace_back(curr_rep, prev_lit, curr_lit);
             }
+           
             else {
                 // For all other elements/clauses
                 this->impl_->triplets.emplace_back(curr_rep, prev_lit, prev_rep);
             }
-        }
         
-        prev_rep = curr_rep;
-        curr_rep++;
+        
+            prev_rep = curr_rep;
+            curr_rep++;
+        }
     }
 }
 
