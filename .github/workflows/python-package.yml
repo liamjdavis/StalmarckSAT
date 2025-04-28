@@ -1,0 +1,111 @@
+name: Python Package
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-python-ubuntu:
+    name: Build Python Package on Ubuntu
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libgtest-dev
+        python -m pip install --upgrade pip
+        python -m pip install build wheel setuptools pybind11
+    
+    - name: Create virtual environment
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install build wheel setuptools pybind11
+    
+    - name: Build and install package
+      run: |
+        source venv/bin/activate
+        cd StalmarckPy
+        # Delete any previous build artifacts
+        rm -rf build
+        rm -rf *.egg-info
+        rm -rf stalmarckpy/__pycache__
+        rm -rf stalmarckpy/*.so
+        # Build and install with -v for verbose output
+        pip install -v .
+    
+    - name: Test import
+      run: |
+        source venv/bin/activate
+        # List installation to debug
+        pip list | grep stalmarckpy
+        # List files in site-packages to debug
+        find venv/lib/python*/site-packages/stalmarckpy -type f | sort
+        # Test import
+        python -c "from stalmarckpy import solve; print('Import successful')"
+
+  build-python-macos:
+    name: Build Python Package on macOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install build dependencies
+      run: |
+        brew install cmake googletest || true
+        python -m pip install --upgrade pip
+        python -m pip install build wheel setuptools pybind11
+    
+    - name: Create virtual environment
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install build wheel setuptools pybind11
+    
+    - name: Build and install package
+      run: |
+        source venv/bin/activate
+        cd StalmarckPy
+        # Delete any previous build artifacts
+        rm -rf build
+        rm -rf *.egg-info
+        rm -rf stalmarckpy/__pycache__
+        rm -rf stalmarckpy/*.so
+        # Set -DCMAKE_POSITION_INDEPENDENT_CODE=ON explicitly
+        export CMAKE_ARGS="-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+        # Build and install with -v for verbose output
+        pip install -v .
+    
+    - name: Test import
+      run: |
+        source venv/bin/activate
+        # List installation to debug
+        pip list | grep stalmarckpy
+        # List files in site-packages to debug
+        find venv/lib/python*/site-packages/stalmarckpy -type f | sort
+        # Test import
+        python -c "from stalmarckpy import solve; print('Import successful')"
