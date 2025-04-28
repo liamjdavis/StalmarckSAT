@@ -1,18 +1,17 @@
 #!/bin/bash
 # Build script for StalmarckPy Python extension
 
-# Create build directory if it doesn't exist
-mkdir -p build
-cd build
+# Get the directory of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Configure with CMake
-cmake ..
+# Clean previous builds first
+rm -rf "$SCRIPT_DIR/build" "$SCRIPT_DIR/dist" "$SCRIPT_DIR/*.egg-info"
 
-# Build the extension
-make -j
+# Install build dependencies
+pip install scikit-build-core pybind11 cmake
 
-# Copy the built extension to the Python module directory
-# The .so file is already in the correct location thanks to set_target_properties in CMakeLists.txt
+# Build the package
+pip install -e .
 
 echo "Build complete!"
 echo "You can now use the module with 'from stalmarckpy import solve'"
