@@ -80,62 +80,6 @@ size_t Formula::num_clauses() const {
     return impl_->clauses.size();
 }
 
-int Formula::translate_disjunction_to_triplets(int curr_rep, const std::vector<int>& clause){
-    if (clause.size() == 1) {
-        return clause[0];
-    }
-    // convert disjunction to implications
-    std::vector<int> implication_clause;
-    for (long unsigned int i = 0; i < clause.size() - 1; i++){
-        implication_clause.push_back(-clause[i]);
-    }
-    implication_clause.push_back(clause[clause.size() - 1]); // add last 
-
-    // convert implications into triplets
-    int prev_rep = curr_rep - 1;
-
-    for (long unsigned int i = clause.size() - 1; i > 0; i--){
-
-        int prev_lit = clause[i - 1];
-        int curr_lit = clause[i];
-
-        if (i == clause.size() - 1) this->impl_->triplets.emplace_back(curr_rep, -prev_lit, curr_lit);
-        else this->impl_->triplets.emplace_back(curr_rep, -prev_lit, prev_rep);
-
-        prev_rep = curr_rep++;
-    }
-
-    return curr_rep; //returns the next representative (subtract one to get the head triplet of the clause)
-}
-
-
-int Formula::translate_conjunction_to_triplets(int curr_rep, const std::vector<int>& clause){
-    if (clause.size() == 1){
-        return clause[0];
-    }
-    
-    int prev_rep = curr_rep - 1;
-
-    for (long unsigned i = clause.size() - 1; i > 0; i--){
-        int curr_lit = clause[i];
-        int prev_lit = clause[i - 1];
-
-        if (i == clause.size() - 1) {
-            this->impl_->triplets.emplace_back(curr_rep, prev_lit, -curr_lit);
-        }
-        else {
-            this->impl_->triplets.emplace_back(curr_rep, prev_lit, -prev_rep);
-        }
-        prev_rep = -curr_rep;
-        curr_rep++;
-    }
-    // add the last triplet
-    this->impl_->triplets.emplace_back(curr_rep, -prev_rep, 0);
-    curr_rep++;
-
-    return curr_rep; // returns the next representative  
-}
-
 void Formula::translate_to_normalized_form() {
     std::vector<std::vector<int>> implication_representation;
 
@@ -238,23 +182,57 @@ void Formula::encode_to_implication_triplets() {
    
     // Assign a new variable for each compound subformula
     int next_variable = static_cast<int>(impl_->num_vars) + 2;
-    int curr_rep = next_variable + 1; // New variable representing the current clause
+    int curr_rep = next_variable++; // New variable representing the current clause
     int prev_rep = curr_rep - 1; // Variable representing the previous clause
-
+    int prev_clause_rep = -1;
     // Process each clause
-    std::vector<int> and_list;
-    // Process each clause
-    for (long unsigned int i = 0; i < this->num_clauses(); i++) {
+    for (long unsigned int i = this->num_clauses() - 1; i > 0; i--) {
         // Guard against out-of-bounds access
         if (i >= this->num_clauses()) {
             break;
         }
+        
         std::vector<int> curr_clause = this->impl_->clauses[i];
-        curr_rep = translate_disjunction_to_triplets(curr_rep, curr_clause);
-        prev_rep = curr_rep - 1;
-        and_list.push_back(prev_rep);
+        
+        // Process literals in the clause
+        for (unsigned int j = curr_clause.size() - 1; j > 0; j--) {
+            int prev_lit = curr_clause[j - 1];
+            int curr_lit = curr_clause[j];
+            
+            // Check for invalid literals
+            if (prev_lit == 0) {
+                continue;
+            }
+
+            // Create triplets based on the clause structure - no normalization assumptions
+            if (j == curr_clause.size() - 1) { 
+                // If the last element of the last clause
+                this->impl_->triplets.emplace_back(curr_rep, -prev_lit, curr_lit);
+            }
+            else {
+                // For all other elements/clauses
+                this->impl_->triplets.emplace_back(curr_rep, -prev_lit, prev_rep);
+                if (j - 1 == 0){
+                    if (prev_clause_rep != -1){
+                        // adding triplet for AND of two clauses
+                        prev_rep = curr_rep++;
+                        if (i == this->num_clauses() - 2) {
+                            // hnalding edge case (last rep in the AND chain must be negated)
+                            this->impl_->triplets.emplace_back(curr_rep, prev_rep, prev_clause_rep); 
+                        } else{
+                            this->impl_->triplets.emplace_back(curr_rep, prev_rep, -prev_clause_rep); 
+                        }
+                    }
+                    prev_clause_rep = -curr_rep; // negate to use the conversion rule for AND
+                }
+            }
+        
+            prev_rep = curr_rep;
+            curr_rep++;
+        }
     }
-    translate_conjunction_to_triplets(curr_rep, and_list);
+    // adding the last clause (it is negated, so we add implication to 0)
+    this->impl_->triplets.emplace_back(curr_rep, abs(prev_clause_rep), 0);
 }
 
 const std::vector<std::tuple<int, int, int>>& Formula::get_triplets() const {
