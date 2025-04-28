@@ -30,6 +30,8 @@ public:
     // Translation methods
     void translate_to_normalized_form();
     void encode_to_implication_triplets();
+    int translate_disjunction_to_triplets(int curr_rep, const std::vector<int>& clause);
+    int translate_conjunction_to_triplets(int curr_rep, const std::vector<int>& clause);
 
     // Get triplets
     const std::vector<std::tuple<int, int, int>>& get_triplets() const;
