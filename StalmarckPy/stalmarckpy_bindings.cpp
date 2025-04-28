@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include "../src/core/stalmarck.hpp"
+#include "../src/core/formula_impl.hpp"  // Include the formula implementation
 #include <stdexcept>
 
 namespace py = pybind11;
