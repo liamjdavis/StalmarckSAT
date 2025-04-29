@@ -184,7 +184,7 @@ void Formula::encode_to_implication_triplets() {
     int next_variable = static_cast<int>(impl_->num_vars) + 2;
     int curr_rep = next_variable++; // New variable representing the current clause
     int prev_rep = curr_rep - 1; // Variable representing the previous clause
-
+    int prev_clause_rep = -1;
     // Process each clause
     for (long unsigned int i = this->num_clauses() - 1; i > 0; i--) {
         // Guard against out-of-bounds access
@@ -205,19 +205,34 @@ void Formula::encode_to_implication_triplets() {
             }
 
             // Create triplets based on the clause structure - no normalization assumptions
-            if (j == curr_clause.size() - 1 && i == this->num_clauses() - 1) { 
+            if (j == curr_clause.size() - 1) { 
                 // If the last element of the last clause
-                this->impl_->triplets.emplace_back(curr_rep, prev_lit, curr_lit);
+                this->impl_->triplets.emplace_back(curr_rep, -prev_lit, curr_lit);
             }
             else {
                 // For all other elements/clauses
-                this->impl_->triplets.emplace_back(curr_rep, prev_lit, prev_rep);
+                this->impl_->triplets.emplace_back(curr_rep, -prev_lit, prev_rep);
+                if (j - 1 == 0){
+                    if (prev_clause_rep != -1){
+                        // adding triplet for AND of two clauses
+                        prev_rep = curr_rep++;
+                        if (i == this->num_clauses() - 2) {
+                            // hnalding edge case (last rep in the AND chain must be negated)
+                            this->impl_->triplets.emplace_back(curr_rep, prev_rep, prev_clause_rep); 
+                        } else{
+                            this->impl_->triplets.emplace_back(curr_rep, prev_rep, -prev_clause_rep); 
+                        }
+                    }
+                    prev_clause_rep = -curr_rep; // negate to use the conversion rule for AND
+                }
             }
-        }
         
-        prev_rep = curr_rep;
-        curr_rep++;
+            prev_rep = curr_rep;
+            curr_rep++;
+        }
     }
+    // adding the last clause (it is negated, so we add implication to 0)
+    this->impl_->triplets.emplace_back(curr_rep, abs(prev_clause_rep), 0);
 }
 
 const std::vector<std::tuple<int, int, int>>& Formula::get_triplets() const {

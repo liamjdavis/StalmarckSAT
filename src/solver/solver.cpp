@@ -363,7 +363,7 @@ bool Solver::verify_assignment() {
         bool z_val = eval_literal(z);
         
         // A triplet encodes (x ↔ (y ∧ z)), which is satisfied if x = (y && z)
-        bool triplet_satisfied = (x_val == (y_val && z_val));
+        bool triplet_satisfied = (x_val == (!y_val || z_val));
         
         if (!triplet_satisfied) {
             return false;
