@@ -1,5 +1,7 @@
 # StalmarckSAT
 
+### The development of this project has been migrated to [github.com/Stalmarck-Satisfiability/StalmarckSAT](https://github.com/Stalmarck-Satisfiability/StalmarckSAT).
+
 StalmarckSAT is an implementation of the Stålmarck's method for tautology checking in propositional logic, extended to also handle SAT solving.
 
 ## Project Overview
